@@ -5,6 +5,7 @@ from app.routes import leave_bp
 from app.models.leave import Leave
 from app.models.shift import Shift
 from app.routes.auth import login_required, manager_required
+from app.utils.notifier import LineNotifier
 
 @leave_bp.route('/leave/apply', methods=['GET'])
 @login_required
@@ -51,13 +52,17 @@ def leave_apply():
         return render_template('leave/apply.html'), 400
 
     try:
-        Leave.create(
+        leave_obj = Leave.create(
             staff_id=session['user_id'],
             start_time=start_time,
             end_time=end_time,
             leave_type=leave_type,
             reason=reason
         )
+        # 發送 LINE 提醒
+        msg = f"\n【新請假申請】\n員工：{session['name']}\n假別：{leave_type}\n時間：{start_time.strftime('%Y-%m-%d %H:%M')} ~ {end_time.strftime('%Y-%m-%d %H:%M')}\n事由：{reason or '無'}\n請主管登入系統進行審核。"
+        LineNotifier.send_notification(msg)
+
         flash('請假申請已送出，等待店長審核中。', 'success')
         return redirect(url_for('main.staff_dashboard'))
     except ValueError as e:
@@ -95,7 +100,28 @@ def leave_approve(leave_id):
         flash('找不到該筆請假單。', 'danger')
         return redirect(url_for('leave.leave_review_page'))
 
+    # 預先查詢受請假影響的班次，發送缺工提醒
+    from sqlalchemy import or_, and_
+    affected_shifts = Shift.query.filter(
+        Shift.staff_id == leave.staff_id,
+        Shift.is_deleted == False,
+        or_(
+            and_(Shift.start_time <= leave.start_time, Shift.end_time > leave.start_time),
+            and_(Shift.start_time < leave.end_time, Shift.end_time >= leave.end_time),
+            and_(Shift.start_time >= leave.start_time, Shift.end_time <= leave.end_time)
+        )
+    ).all()
+
     leave.approve(reviewer_id=session['user_id'])
+
+    # 發送 LINE 提醒
+    msg = f"\n【假單審核通知】\n員工 {leave.staff.name} 的 {leave.leave_type} 請假申請已被核准。"
+    if affected_shifts:
+        msg += "\n\n⚠️ 【缺工提醒】以下班次因請假已被釋出，目前無人排班，請儘快安排補班調度：\n"
+        for s in affected_shifts:
+            msg += f"- {s.title} ({s.start_time.strftime('%m/%d %H:%M')} ~ {s.end_time.strftime('%H:%M')})\n"
+    LineNotifier.send_notification(msg)
+
     flash(f'已核准員工 {leave.staff.name} 的 {leave.leave_type} 請假申請。該時段已排定的班次已釋出！', 'success')
     return redirect(url_for('leave.leave_review_page'))
 
@@ -146,5 +172,10 @@ def shift_swap_post():
 
     # 將指派員工清空為空班/缺工 (staff_id = None)，並標示為草稿狀態以利店長調整
     shift.update(staff_id=None, is_draft=True)
+
+    # 發送 LINE 提醒
+    msg = f"\n📢 【代班/換班募集】\n員工 {session['name']} 釋出了班次尋求代班：\n- 班別：{shift.title}\n- 時間：{shift.start_time.strftime('%Y-%m-%d %H:%M')} ~ {shift.end_time.strftime('%H:%M')}\n歡迎有空的同仁協助代班！"
+    LineNotifier.send_notification(msg)
+
     flash(f'已成功將您的「{shift.title}」班表釋出並發起代班募集！', 'success')
     return redirect(url_for('main.staff_dashboard'))
