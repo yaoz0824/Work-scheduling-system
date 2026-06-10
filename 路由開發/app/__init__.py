@@ -23,6 +23,10 @@ def create_app(test_config=None):
     # Initialize extensions
     db.init_app(app)
 
+    # Automatically create database tables at runtime if they do not exist
+    with app.app_context():
+        db.create_all()
+
     # Register blueprints
     from app.routes import register_blueprints
     register_blueprints(app)
