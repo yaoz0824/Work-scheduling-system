@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="card">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+        <h1 style="margin: 0;">歷史紀錄 ({{ year }}/{{ month }})</h1>
+    </div>
+
+    {% if records %}
+    <div style="overflow-x: auto;">
+        <table>
+            <thead>
+                <tr>
+                    <th>日期</th>
+                    <th>類別</th>
+                    <th>上班時間</th>
+                    <th>下班時間</th>
+                    <th>工時</th>
+                    <th>預估薪資</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for r in records %}
+                <tr>
+                    <td style="font-weight: 500;">{{ r.date }}</td>
+                    <td>
+                        {% if r.type == 'work' %}
+                            <span style="background: #e0e7ff; color: #3730a3; padding: 0.25rem 0.75rem; border-radius: 999px; font-size: 0.875rem;">工作</span>
+                        {% else %}
+                            <span style="background: #fce7f3; color: #9d174d; padding: 0.25rem 0.75rem; border-radius: 999px; font-size: 0.875rem;">請假 ({{ r.leave_type }})</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ r.clock_in.split(' ')[1] if r.clock_in else '-' }}</td>
+                    <td>{{ r.clock_out.split(' ')[1] if r.clock_out else '-' }}</td>
+                    <td>{{ r.total_hours or '-' }}</td>
+                    <td>
+                        {% if r.estimated_salary %}
+                            <strong style="color: var(--success);">${{ r.estimated_salary | int }}</strong>
+                        {% else %}
+                            -
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if r.type == 'work' %}
+                        <form action="{{ url_for('record.delete_record', id=r.id) }}" method="POST" style="display:inline;" onsubmit="return confirm('確定要刪除這筆紀錄嗎？');">
+                            <button type="submit" style="background: none; border: none; color: var(--danger); cursor: pointer; font-weight: 500; text-decoration: underline;">刪除</button>
+                        </form>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="text-center" style="padding: 3rem 0; color: var(--text-secondary);">
+        <p>這個月還沒有任何紀錄哦！</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
