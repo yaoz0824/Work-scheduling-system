@@ -19,6 +19,18 @@ class AutoScheduler:
         # 取得所有非管理員員工
         staffs = User.query.filter_by(role='staff', is_deleted=False).all()
         
+        # 刪除已存在於該日期區間內的所有非刪除班次（避免重覆自動排班導致班表累積與工時衝突）
+        start_datetime = datetime.combine(start_date, time.min)
+        end_datetime = datetime.combine(end_date, time.max)
+        existing_shifts = Shift.query.filter(
+            Shift.start_time >= start_datetime,
+            Shift.start_time <= end_datetime,
+            Shift.is_deleted == False
+        ).all()
+        for shift in existing_shifts:
+            shift.is_deleted = True
+        db.session.commit()
+        
         created_shifts = []
         current_date = start_date
         
