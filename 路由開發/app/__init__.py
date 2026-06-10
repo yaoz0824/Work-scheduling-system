@@ -11,6 +11,11 @@ def create_app(test_config=None):
     # Load configuration
     if test_config is None:
         app.config.from_object('config.Config')
+        
+        # Override configuration for SQLite database path dynamically
+        basedir = os.path.abspath(os.path.dirname(__file__))
+        app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(basedir, 'database.db')
+        app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
     else:
         app.config.from_mapping(test_config)
 
@@ -20,7 +25,7 @@ def create_app(test_config=None):
     except OSError:
         pass
 
-    # Initialize extensions
+    # Initialize extensions (called after app.config configuration is set up)
     db.init_app(app)
 
     # Ensure the parent directory for the SQLite database exists
