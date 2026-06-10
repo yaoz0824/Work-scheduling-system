@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="card">
+    <div class="text-center mb-4">
+        <h1 style="font-size: 2.5rem; margin-bottom: 0.5rem; color: var(--text-primary);">今日打卡</h1>
+        <p style="color: var(--text-secondary); font-size: 1.125rem;">{{ today }} - 狀態：<strong style="color: var(--primary);">{{ status }}</strong></p>
+    </div>
+
+    <div style="margin: 3rem 0;">
+        {% if status == "尚未打卡" %}
+            <form action="{{ url_for('main.clock_in') }}" method="POST">
+                <button type="submit" class="btn btn-primary btn-huge">
+                    👋 上班打卡
+                </button>
+            </form>
+        {% elif status == "上班中" %}
+            <form action="{{ url_for('main.clock_out') }}" method="POST">
+                <button type="submit" class="btn btn-danger btn-huge">
+                    🏃 下班打卡
+                </button>
+            </form>
+            <div class="text-center mt-4" style="color: var(--text-secondary);">
+                <p>上班時間：{{ record.clock_in.split(' ')[1] }}</p>
+                <p>辛苦了！下班記得打卡哦！</p>
+            </div>
+        {% else %}
+            <div class="text-center">
+                <div style="font-size: 4rem; margin-bottom: 1rem;">🎉</div>
+                <h2 style="margin-bottom: 0.5rem;">今日已下班</h2>
+                <p style="color: var(--text-secondary);">好好休息，明天再加油！</p>
+            </div>
+        {% endif %}
+    </div>
+
+    {% if record and record.clock_out %}
+    <div class="stats-grid">
+        <div class="stat-box">
+            <h3>總工時</h3>
+            <div class="value">{{ record.total_hours }} h</div>
+        </div>
+        <div class="stat-box">
+            <h3>加班時數</h3>
+            <div class="value" style="color: var(--danger);">{{ record.overtime_hours }} h</div>
+        </div>
+        <div class="stat-box">
+            <h3>今日預估薪資</h3>
+            <div class="value" style="color: var(--success);">${{ record.estimated_salary | int }}</div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

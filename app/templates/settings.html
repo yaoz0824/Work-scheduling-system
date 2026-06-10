@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="card">
+    <h1 style="margin-top: 0; margin-bottom: 2rem;">工作與薪資設定</h1>
+
+    <form action="{{ url_for('setting.update') }}" method="POST">
+        <input type="hidden" name="id" value="{{ job.id }}">
+        
+        <div class="form-group">
+            <label for="job_name">工作名稱</label>
+            <input type="text" id="job_name" name="job_name" class="form-control" value="{{ job.job_name }}" disabled style="background: #f3f4f6; cursor: not-allowed;">
+            <small style="color: var(--text-secondary); margin-top: 0.5rem; display: block;">*多份工作管理功能即將推出，目前先使用預設工作</small>
+        </div>
+
+        <div class="form-group">
+            <label for="hourly_rate">基本時薪 (NTD)</label>
+            <input type="number" step="0.5" id="hourly_rate" name="hourly_rate" class="form-control" value="{{ job.hourly_rate }}" required>
+        </div>
+
+        <div class="form-group">
+            <label>加班費計算規則</label>
+            <div style="background: #f8fafc; border: 1px solid #e2e8f0; padding: 1rem; border-radius: 8px;">
+                <p style="margin: 0; color: var(--text-secondary); font-size: 0.875rem;">
+                    ✅ 系統目前預設採用勞基法標準：<br><br>
+                    • 第 1~8 小時：1.00 倍時薪<br>
+                    • 第 9~10 小時：1.34 倍時薪<br>
+                    • 第 11~12 小時：1.67 倍時薪
+                </p>
+            </div>
+        </div>
+
+        <div style="margin-top: 2rem;">
+            <button type="submit" class="btn btn-primary" style="width: 100%;">💾 儲存設定</button>
+        </div>
+    </form>
+</div>
+{% endblock %}
